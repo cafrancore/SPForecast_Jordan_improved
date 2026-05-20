@@ -1,0 +1,76 @@
+# ==== Bootstrap for a brand new computer ====
+
+# 0) Set a stable CRAN repo
+if (is.null(getOption("repos")) || getOption("repos")[["CRAN"]] %in% c("", "@CRAN@")) {
+  options(repos = c(CRAN = "https://cloud.r-project.org"))
+}
+
+# 1) Create/use a LOCAL library in the project (./r-lib)
+project_lib <- file.path(getwd(), "r-lib")
+if (!dir.exists(project_lib)) dir.create(project_lib, recursive = TRUE, showWarnings = FALSE)
+.libPaths(c(normalizePath(project_lib, winslash = "/"), .libPaths()))
+
+message("Using project library: ", .libPaths()[1])
+
+# 2) (Optional) Check for build tools
+if (!requireNamespace("pkgbuild", quietly = TRUE)) {
+  install.packages("pkgbuild", dependencies = TRUE)
+}
+bt <- try(pkgbuild::has_build_tools(debug = TRUE), silent = TRUE)
+message("Build tools available: ", ifelse(inherits(bt, "try-error"), "Not checked", bt))
+
+# 3) Required packages
+pkgs <- c(
+  "dplyr","tidyr","data.table","tibble","stringr","forcats","readxl","openxlsx",
+  "sf","sp","raster","terra","leaflet","classInt",
+  "ggplot2","ggpubr","viridis","RColorBrewer","scales","gridExtra","treemapify",
+  "shiny","shinyjs","shinydashboard","shinyWidgets","DT",
+  "psych","cluster","glmnet","pROC","randomForest","ppcor","vars",
+  "haven","foreign","labelled","igraph","rpart","rpart.plot",
+  "forecast","tseries","urca","pdp","here","proxyC","extrafont","factoextra","wesanderson","purrr"
+)
+
+# 4) Install missing ones (into ./r-lib)
+to_install <- setdiff(pkgs, rownames(installed.packages(lib.loc = .libPaths())))
+if (length(to_install)) {
+  message("Installing missing packages: ", paste(to_install, collapse = ", "))
+  install.packages(to_install, dependencies = TRUE)
+}
+
+# 5) Load all packages
+invisible(lapply(pkgs, require, character.only = TRUE, quietly = TRUE))
+
+# 6) Global options
+options(scipen = 999, dplyr.summarise.inform = FALSE)
+
+# 7) Fonts on Windows (if extrafont is available)
+if (Sys.info()[["sysname"]] == "Windows" && requireNamespace("extrafont", quietly = TRUE)) {
+  try(extrafont::loadfonts(device = "win", quiet = TRUE), silent = TRUE)
+}
+
+# 8) Project folder structure
+root_dir        <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
+inputLocation   <- file.path(root_dir, "Input")
+dataLocation    <- file.path(root_dir, "Data")
+Gislocation     <- file.path(inputLocation, "GIS")
+dictionaryLocation <- file.path(inputLocation, "Dictionary")
+
+# Create folders if they do not exist
+for (p in c(inputLocation, dataLocation, Gislocation, dictionaryLocation)) {
+  if (!dir.exists(p)) dir.create(p, recursive = TRUE, showWarnings = FALSE)
+}
+
+# 9) Load the dictionary
+dict_path <- file.path(dictionaryLocation, "DictionaryR.xlsx")
+if (!file.exists(dict_path)) {
+  stop("Dictionary not found at: ", dict_path,
+       "\nPlease place 'DictionaryR.xlsx' in 'Input/Dictionary'.")
+}
+VarLabels <- as.matrix(readxl::read_excel(dict_path, sheet = "Dashboard", range = "A1:C180"))
+VarLabels[is.na(VarLabels)] <- ""
+VarLabels[,1] <- trimws(VarLabels[,1])  # your fix
+
+# 10) Default language
+language <- 1
+
+message("Bootstrap complete. Packages installed, folders ready, dictionary loaded.")

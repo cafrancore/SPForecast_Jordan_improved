@@ -212,11 +212,11 @@ results_gov <- bind_rows(
   # Scenario 5
   data2 %>% 
     filter(Scenario_5 == "UCT Beneficiaries") %>%
-    group_by(Scenario = "Scenario 5", Governorate, Category = Scenario_4) %>%
+    group_by(Scenario = "Scenario 5", Governorate, Category = Scenario_5) %>%
     summarize(
       count = n(),
-      value_yearly_jod_CT = sum(Total_Value_CT_4 * weights)/(10^6)*12,
-      value_yearly_usd_CT = sum(Total_Value_CT_4 * weights)/(10^6)*exc_rateJOD_USD*12,
+      value_yearly_jod_CT = sum(Total_Value_CT_5_year1 * weights)/(10^6)*12,
+      value_yearly_usd_CT = sum(Total_Value_CT_5_year1 * weights)/(10^6)*exc_rateJOD_USD*12,
       .groups = "drop"
     ) %>%
     group_by(Scenario) %>%
@@ -229,7 +229,7 @@ results_gov <- bind_rows(
       Scenario == "Scenario 1" ~ "Households under poverty line",
       Scenario == "Scenario 2" ~ paste0("Households under PL after inflation shock ", shock_inflation, "%"),
       Scenario == "Scenario 3" ~ "Climate change impact on water scarcity",
-      Scenario == "Scenario 5" ~ paste0("Households under PL after aging and change in mortality ",mortality_rate, "x 1000 rate"),
+      Scenario == "Scenario 5" ~ paste0("Households under PL after aging and change in mortality ",mortality_rate*1000, "x 1000 rate"),
       
       TRUE ~ if (input$employment_input_method == "gdp") {
         paste0("GDP shock ", input$increase_gdp_percap, "%")

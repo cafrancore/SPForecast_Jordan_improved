@@ -5,6 +5,18 @@ suppressPackageStartupMessages({
   library(tidyr)
 })
 
+if (!exists(".sp_cache", envir = .GlobalEnv, inherits = FALSE)) {
+  assign(".sp_cache", new.env(parent = emptyenv()), envir = .GlobalEnv)
+}
+.sp_cache <- get(".sp_cache", envir = .GlobalEnv)
+
+.cache_get <- function(key, loader) {
+  if (!exists(key, envir = .sp_cache, inherits = FALSE)) {
+    assign(key, loader(), envir = .sp_cache)
+  }
+  get(key, envir = .sp_cache, inherits = FALSE)
+}
+
 # language: 1 = English, 2 = Arabic  (matches tu app)
 # sample_dups: si TRUE, toma 1 registro por request_id
 #data_prep_load <- function(inputLocation, dataLocation, language = 1, sample_dups = TRUE) {
@@ -19,25 +31,41 @@ dictionaryLocation  <- file.path(inputLocation, "Dictionary")
 
 
 # --------------------------- DICTIONARIES -------------------------------------------
-VarLabels <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                  sheet = "Dashboard", range = "A1:C180"))
+VarLabels <- .cache_get("dict_dashboard_A1_C180", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Dashboard", range = "A1:C180"))
+})
 VarLabels[is.na(VarLabels)] <- ""
 VarLabels[,1] <- trimws(VarLabels[,1])
 
-Employment_Status <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                          sheet = "Category", range = "F1:I6"))
-Education_Level   <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                          sheet = "Category", range = "A1:D10"))
-Health_Level      <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                          sheet = "Category", range = "K1:N5"))
-Gender_Level      <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                          sheet = "Category", range = "P1:S3"))
-Governorates      <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                          sheet = "Category", range = "U1:X13"))
-VariableNames     <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                          sheet = "Category", range = "Z1:AC50"))
-Variable_X        <- as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
-                                          sheet = "Category", range = "AZ1:BC41"))
+Employment_Status <- .cache_get("dict_category_F1_I6", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Category", range = "F1:I6"))
+})
+Education_Level   <- .cache_get("dict_category_A1_D10", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Category", range = "A1:D10"))
+})
+Health_Level      <- .cache_get("dict_category_K1_N5", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Category", range = "K1:N5"))
+})
+Gender_Level      <- .cache_get("dict_category_P1_S3", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Category", range = "P1:S3"))
+})
+Governorates      <- .cache_get("dict_category_U1_X13", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Category", range = "U1:X13"))
+})
+VariableNames     <- .cache_get("dict_category_Z1_AC50", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Category", range = "Z1:AC50"))
+})
+Variable_X        <- .cache_get("dict_category_AZ1_BC41", function() {
+  as.matrix(read_excel(file.path(dictionaryLocation, "DictionaryR.xlsx"),
+                       sheet = "Category", range = "AZ1:BC41"))
+})
 
 # --------------------------- LOAD ADMIN RECORDS -------------------------------------
 #BeneficiariesData <- read_excel(file.path(dataLocation, "Admin_record/Beneficiary.xlsx"), na = "NULL") %>% mutate(Eligibility = "Beneficiary")
@@ -105,6 +133,8 @@ names(ApplicantsData)[1] <- "request_id"
 
 ApplicantsData<-ApplicantsData %>% filter(`Impute Income`>0)
   
-data_macro <- read_excel(file.path(dataLocation,"data_jor.xlsx"), sheet = "Data_jor")
+data_macro <- .cache_get("data_jor_sheet_data_jor", function() {
+  read_excel(file.path(dataLocation, "data_jor.xlsx"), sheet = "Data_jor")
+})
 
 #}

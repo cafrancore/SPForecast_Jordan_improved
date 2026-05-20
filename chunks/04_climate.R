@@ -1,4 +1,16 @@
 # --- Shock parameters & weights (same inputs/objects) ---
+if (!exists(".sp_cache", envir = .GlobalEnv, inherits = FALSE)) {
+  assign(".sp_cache", new.env(parent = emptyenv()), envir = .GlobalEnv)
+}
+.sp_cache <- get(".sp_cache", envir = .GlobalEnv)
+
+.cache_get <- function(key, loader) {
+  if (!exists(key, envir = .sp_cache, inherits = FALSE)) {
+    assign(key, loader(), envir = .sp_cache)
+  }
+  get(key, envir = .sp_cache, inherits = FALSE)
+}
+
 shock_params <- list(
   livestock_loss = input$livestockLoss,
   land_affected = input$landAffected,
@@ -29,15 +41,19 @@ HIECS_data_common_F <- dataCH3 %>% dplyr::rename_with(~ gsub(" ", ".", .x))
 
 # --- Raster & polygons (use terra + sf; preserve objects/prints) ---
 tif_file <- file.path(Gislocation, "VA_NC_Annual.tif")
-r <- terra::rast(tif_file)            # replace raster::raster() with terra::rast()
+r <- .cache_get("climate_raster_VA_NC_Annual", function() {
+  terra::rast(tif_file)
+})
 raster_df <- as.data.frame(r, xy = TRUE)  # keep object name created earlier
 print(r)
 crs(r)
 
-jordan_governorates <- sf::st_read(
-  file.path(Gislocation, "StatPlanet_Jordan/map/Jordan/JOR_adm1.shp"),
-  quiet = TRUE
-)
+jordan_governorates <- .cache_get("climate_shp_JOR_adm1", function() {
+  sf::st_read(
+    file.path(Gislocation, "StatPlanet_Jordan/map/Jordan/JOR_adm1.shp"),
+    quiet = TRUE
+  )
+})
 
 crs(jordan_governorates)
 
@@ -70,12 +86,14 @@ raster_with_polygon_ids <- raster_joined %>%
   sf::st_drop_geometry() %>%
   dplyr::rename(polygon_id = ID_1)
 
-average_df <- raster_with_polygon_ids %>%
-  dplyr::filter(!is.na(VA_NC_Annual)) %>%
-  dplyr::group_by(polygon_id) %>%
-  dplyr::summarize(VA_NC_Annual = mean(VA_NC_Annual, na.rm = TRUE), .groups = "drop")
+average_df_cleaned <- .cache_get("climate_average_df_cleaned", function() {
+  average_df <- raster_with_polygon_ids %>%
+    dplyr::filter(!is.na(VA_NC_Annual)) %>%
+    dplyr::group_by(polygon_id) %>%
+    dplyr::summarize(VA_NC_Annual = mean(VA_NC_Annual, na.rm = TRUE), .groups = "drop")
 
-average_df_cleaned <- average_df %>% dplyr::filter(!is.na(polygon_id))
+  average_df %>% dplyr::filter(!is.na(polygon_id))
+})
 print(average_df_cleaned)
 
 jordan_governorates_with_VA <- jordan_governorates %>%

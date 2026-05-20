@@ -1,0 +1,13 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Run Shiny app in browser",
+      "type": "shell",
+      "command": "C:\\Users\\CFRANCORES\\AppData\\Local\\Programs\\R\\R-4.5.2\\bin\\x64\\Rscript.exe",
+      "args": ["run_app.R"],
+      "group": "build",
+      "problemMatcher": []
+    }
+  ]
+}

@@ -588,6 +588,7 @@ server <- function(input, output, session) {
   ##Observer SIMULATION ----------------------------------------------------------------  
   observeEvent(input$runSimulation, {
     showNotification(textOutput("newtranslation23"), type = "message")
+    withProgress(message = "Running simulation...", value = 0, {
     # 1.0 Preliminaries -
     # Extract parameters from inputs
     target_poverty_rate <- input$targetPoverty 
@@ -606,31 +607,40 @@ server <- function(input, output, session) {
 
     
     
+    incProgress(0.10, detail = "Loading and harmonizing raw data")
     source(file.path(root_dir,"chunks/00_adjusting_rawdata_all.R"), local = TRUE)
     
     #Reading files
+    incProgress(0.10, detail = "Preparing data")
     source(file.path(root_dir,"chunks/01_data_prep.R"), local = TRUE)
     cleanData <- ApplicantsData
     
     #Parameters UCT  
+    incProgress(0.10, detail = "Estimating UCT baseline")
     source(file.path(root_dir,"chunks/02_estimating_uct.R"), local = TRUE)
     dataCH2=data
     #Poverty&Inflation   
+    incProgress(0.10, detail = "Computing poverty and inflation scenarios")
     source(file.path(root_dir,"chunks/03_povertyline.R"), local = TRUE)
     dataCH2 <- data
     #Climate
+    incProgress(0.10, detail = "Running climate module")
     source(file.path(root_dir,"chunks/04_climate.R"), local = TRUE)
     data3 = data2
     
     # Economic
+    incProgress(0.15, detail = "Running economic module")
     source(file.path(root_dir,"chunks/05_economic.R"), local = TRUE)
     #demographics
+    incProgress(0.10, detail = "Running demographics module")
     source(file.path(root_dir,"chunks/06_demographics1.R"), local = TRUE)   
     
     ##Final results
+    incProgress(0.10, detail = "Building final tables")
     source(file.path(root_dir,"chunks/07_final_tables01.R"), local = TRUE)
     
     
+    incProgress(0.10, detail = "Formatting outputs")
     simResults$finalTable <- results %>%
       mutate(variation_count = ifelse(Scenario_name == "Current status", 0, 
                                       (count - count[Scenario_name == "Current status"]) / count[Scenario_name == "Current status"] * 100))%>%
@@ -669,6 +679,7 @@ server <- function(input, output, session) {
       )
     
     print(simResults$results_dynamic_all)
+    })
   
   showNotification("Simulation complete!", type = "message")
   

@@ -12,43 +12,35 @@ if (!dir.exists(project_lib)) dir.create(project_lib, recursive = TRUE, showWarn
 
 message("Using project library: ", .libPaths()[1])
 
-# 2) (Optional) Check for build tools
-if (!requireNamespace("pkgbuild", quietly = TRUE)) {
-  install.packages("pkgbuild", dependencies = TRUE)
-}
-bt <- try(pkgbuild::has_build_tools(debug = TRUE), silent = TRUE)
-message("Build tools available: ", ifelse(inherits(bt, "try-error"), "Not checked", bt))
-
-# 3) Required packages
-pkgs <- c(
-  "dplyr","tidyr","data.table","tibble","stringr","forcats","readxl","openxlsx",
-  "sf","sp","raster","terra","leaflet","classInt",
-  "ggplot2","ggpubr","viridis","RColorBrewer","scales","gridExtra","treemapify",
-  "shiny","shinyjs","shinydashboard","shinyWidgets","DT",
-  "psych","cluster","glmnet","pROC","randomForest","ppcor","vars",
-  "haven","foreign","labelled","igraph","rpart","rpart.plot",
-  "forecast","tseries","urca","pdp","here","proxyC","extrafont","factoextra","wesanderson","purrr"
+# 2) Runtime package requirements (no install at app startup)
+runtime_pkgs <- c(
+  "shiny", "shinydashboard", "shinyWidgets",
+  "dplyr", "tidyr", "readxl", "DT",
+  "leaflet", "sf", "terra", "tseries", "ggplot2", "vars"
 )
 
-# 4) Install missing ones (into ./r-lib)
-to_install <- setdiff(pkgs, rownames(installed.packages(lib.loc = .libPaths())))
-if (length(to_install)) {
-  message("Installing missing packages: ", paste(to_install, collapse = ", "))
-  install.packages(to_install, dependencies = TRUE)
+installed_now <- rownames(installed.packages(lib.loc = .libPaths()))
+missing_pkgs <- setdiff(runtime_pkgs, installed_now)
+
+if (length(missing_pkgs)) {
+  stop(
+    "Missing required packages: ", paste(missing_pkgs, collapse = ", "),
+    "\nRun source('install_first_time.R') in RStudio, then restart the app.",
+    call. = FALSE
+  )
 }
 
-# 5) Load all packages
-invisible(lapply(pkgs, require, character.only = TRUE, quietly = TRUE))
+invisible(lapply(runtime_pkgs, require, character.only = TRUE, quietly = TRUE))
 
-# 6) Global options
+# 3) Global options
 options(scipen = 999, dplyr.summarise.inform = FALSE)
 
-# 7) Fonts on Windows (if extrafont is available)
+# 4) Fonts on Windows (optional)
 if (Sys.info()[["sysname"]] == "Windows" && requireNamespace("extrafont", quietly = TRUE)) {
   try(extrafont::loadfonts(device = "win", quiet = TRUE), silent = TRUE)
 }
 
-# 8) Project folder structure
+# 5) Project folder structure
 userLocation        <- normalizePath(getwd(), winslash = "/", mustWork = FALSE)
 root_dir <- userLocation
 inputLocation   <- file.path(root_dir, "Input")
@@ -61,7 +53,7 @@ for (p in c(inputLocation, dataLocation, Gislocation, dictionaryLocation)) {
   if (!dir.exists(p)) dir.create(p, recursive = TRUE, showWarnings = FALSE)
 }
 
-# 9) Load the dictionary
+# 6) Load the dictionary
 dict_path <- file.path(dictionaryLocation, "DictionaryR.xlsx")
 if (!file.exists(dict_path)) {
   stop("Dictionary not found at: ", dict_path,
@@ -71,7 +63,7 @@ VarLabels <- as.matrix(readxl::read_excel(dict_path, sheet = "Dashboard", range 
 VarLabels[is.na(VarLabels)] <- ""
 VarLabels[,1] <- trimws(VarLabels[,1])  # your fix
 
-# 10) Default language
+# 7) Default language
 language <- 1
 
-message("Bootstrap complete. Packages installed, folders ready, dictionary loaded.")
+message("Bootstrap complete. Runtime packages loaded, folders ready, dictionary loaded.")
